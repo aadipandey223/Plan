@@ -383,8 +383,8 @@ export default function DSAPlan() {
             <div className="p-6 sm:p-8 rounded-3xl border bg-white border-slate-200 shadow-sm dark:bg-slate-900/50 dark:border-slate-800">
               <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
                 <div className="relative">
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center border-4 border-slate-50 dark:border-[#07070a] shadow-xl overflow-hidden">
-                     <User className="w-12 h-12 text-white" />
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center border-4 border-slate-50 dark:border-[#07070a] shadow-xl overflow-hidden shadow-indigo-500/20">
+                     <img src="/profile.png" alt="Aditya Pandey" className="w-full h-full object-cover bg-white dark:bg-slate-900" />
                   </div>
                   <div className="absolute -bottom-2 -right-2 bg-rose-500 text-white w-10 h-10 rounded-full border-4 border-slate-50 dark:border-[#07070a] flex items-center justify-center tooltip" title="Current Streak">
                     <Flame className="w-5 h-5 fill-current" />
