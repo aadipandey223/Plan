@@ -323,8 +323,9 @@ export default function DSAPlan() {
                 </span>
               </div>
               <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center border border-slate-300 dark:border-slate-700 overflow-hidden flex-shrink-0">
-                <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 40 40">
-                  <circle cx="20" cy="20" r="18" fill="none" className="stroke-slate-200 dark:stroke-slate-800" strokeWidth="4"></circle>
+                <img src="/profile.png" alt="Profile" className="w-[85%] h-[85%] rounded-full object-cover z-0 bg-white dark:bg-slate-900" />
+                <svg className="absolute inset-0 w-full h-full -rotate-90 z-10" viewBox="0 0 40 40">
+                  <circle cx="20" cy="20" r="18" fill="none" className="stroke-transparent" strokeWidth="4"></circle>
                   <circle cx="20" cy="20" r="18" fill="none" className="stroke-emerald-500 transition-all duration-1000" strokeWidth="4" strokeDasharray="113" strokeDashoffset={113 - (113 * stats.percent / 100)} strokeLinecap="round"></circle>
                 </svg>
               </div>
