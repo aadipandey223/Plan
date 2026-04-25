@@ -7,9 +7,10 @@ import {
 } from "lucide-react";
 
 // Standard icon for LeetCode
+
 const LeetCodeIcon = ({ className }) => (
   <img 
-    src="/leetcode.png" 
+    src={"/leetcode.png"}
     alt="LeetCode" 
     className={`object-contain rounded-[4px] ${className}`} 
   />

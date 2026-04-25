@@ -1,7 +1,10 @@
-import DSAPlan from './DSAPlan'
+import DSAPlan from './DSAPlan';
+
 
 function App() {
-  return <DSAPlan />
+  return (
+    <DSAPlan />
+  );
 }
 
-export default App
+export default App;
