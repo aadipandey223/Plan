@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { plan } from "./planData";
+import StudyPlanner from "./StudyPlanner";
 import { 
   CheckCircle2, Circle, Clock, ChevronDown, ChevronRight, 
   BarChart, ListTodo, CalendarClock, Trophy, Play,
@@ -41,6 +42,7 @@ const weekAccents = [
 ];
 
 export default function DSAPlan() {
+  const [plannerMode, setPlannerMode] = useState("dsa");
   const [activeWeek, setActiveWeek] = useState(0);
   const [expandedDay, setExpandedDay] = useState(null);
   const [activeTab, setActiveTab] = useState("plan"); // "plan" | "backlog" | "profile"
@@ -109,6 +111,7 @@ export default function DSAPlan() {
     
     plan.forEach((wk, wi) => {
       wk.days.forEach((day, di) => {
+        // DSA Problems
         day.problems.forEach((p, pi) => {
           total++;
           const id = `w${wi}-d${di}-p${pi}`;
@@ -119,16 +122,39 @@ export default function DSAPlan() {
           }
           if (stat === "later") later++;
         });
+
+        // Non-DSA Task
+        if (day.nonDsa) {
+          total++;
+          const id = `w${wi}-d${di}-nondsa`;
+          const stat = getStatus(id);
+          if (stat === "done") {
+            done++;
+            if (progress[id]?.date) completedDates.add(progress[id].date);
+          }
+          if (stat === "later") later++;
+        }
+
+        // Spaced Repetition Task
+        if (day.spaced) {
+          total++;
+          const id = `w${wi}-d${di}-spaced`;
+          const stat = getStatus(id);
+          if (stat === "done") {
+            done++;
+            if (progress[id]?.date) completedDates.add(progress[id].date);
+          }
+          if (stat === "later") later++;
+        }
       });
     });
 
     // Calculate streak
-    const datesArr = Array.from(completedDates).sort().reverse(); // ["2026-04-25", "2026-04-24", ...]
+    const datesArr = Array.from(completedDates).sort().reverse(); 
     let currentStreak = 0;
     let checkDate = new Date();
     checkDate.setHours(0,0,0,0);
     
-    // Also consider yesterday as active streak if today isn't done yet
     let previousDate = new Date(checkDate);
     previousDate.setDate(previousDate.getDate() - 1);
 
@@ -163,19 +189,32 @@ export default function DSAPlan() {
     const items = [];
     plan.forEach((wk, wi) => {
       wk.days.forEach((day, di) => {
+        // DSA Problems
         day.problems.forEach((p, pi) => {
           const id = `w${wi}-d${di}-p${pi}`;
           if (getStatus(id) === "later") {
-            items.push({ id, wi, di, pi, p, weekNum: wk.week, dayNum: day.day });
+            items.push({ id, type: 'dsa', p, weekNum: wk.week, dayNum: day.day });
           }
         });
+        
+        // Non-DSA
+        const nonDsaId = `w${wi}-d${di}-nondsa`;
+        if (getStatus(nonDsaId) === "later") {
+          items.push({ id: nonDsaId, type: 'nondsa', p: { name: day.nonDsa }, weekNum: wk.week, dayNum: day.day });
+        }
+
+        // Spaced
+        const spacedId = `w${wi}-d${di}-spaced`;
+        if (getStatus(spacedId) === "later") {
+          items.push({ id: spacedId, type: 'spaced', p: { name: day.spaced }, weekNum: wk.week, dayNum: day.day });
+        }
       });
     });
     return items;
   }, [progress]);
 
   const getProblemLink = (p) => {
-    if (!p.lc || p.lc === "personal" || p.diff === "—") return null;
+    if (!p || !p.name || !p.lc || p.lc === "personal" || p.diff === "—") return null;
 
     // Clean name from markers to generate an exact slug/search text
     let cleanName = p.name.replace(/^Re-solve:\s*/i, '').replace(/\s*\(.*?\)/g, '').trim();
@@ -231,26 +270,6 @@ export default function DSAPlan() {
                 {p.name}
               </span>
               
-              {/* LeetCode or GFG Direct Link Icon */}
-              {problemLink && (
-                <a 
-                  href={problemLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={p.lc === "GFG" 
-                    ? "text-emerald-600 hover:text-emerald-700 dark:text-emerald-500/80 dark:hover:text-emerald-400 transition-colors" 
-                    : "text-amber-500 hover:text-amber-600 dark:text-amber-500/80 dark:hover:text-amber-400 transition-colors"
-                  }
-                  title={p.lc === "GFG" ? `Open ${p.name.split("/")[0]} in GFG` : "Open in LeetCode"}
-                >
-                  {p.lc === "GFG" ? (
-                    <span className="font-black text-[10px] tracking-widest border px-1 rounded-sm border-current bg-current/10">GFG</span>
-                  ) : (
-                    <LeetCodeIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  )}
-                </a>
-              )}
-
               {showContext && (
                 <span className="text-[9px] sm:text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
                   W{showContext.weekNum} D{showContext.dayNum}
@@ -270,18 +289,41 @@ export default function DSAPlan() {
           </div>
         </div>
 
-        <button
-          onClick={() => toggleTask(id, "later")}
-          title="Do Later"
-          className={`flex items-center justify-center gap-1.5 px-3 py-2 sm:px-2 sm:py-1 rounded-lg sm:rounded text-xs font-semibold sm:font-normal transition-colors w-full sm:w-auto mt-2 sm:mt-0 ${
-            isLater 
-            ? 'bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-600/20 dark:text-amber-400 dark:border-amber-600/30' 
-            : 'bg-slate-100 text-slate-600 border border-transparent hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-300'
-          }`}
-        >
-          <Clock className="w-3.5 h-3.5" />
-          <span>{isLater ? 'Due' : 'Later'}</span>
-        </button>
+        <div className="flex flex-row sm:flex-col items-center gap-2 sm:gap-1.5 mt-2 sm:mt-0 w-full sm:w-auto">
+          {/* LeetCode or GFG Direct Link Icon */}
+          {problemLink && (
+            <a 
+              href={problemLink} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className={`p-1.5 rounded-lg border transition-all ${
+                p.lc === "GFG" 
+                ? "text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-400 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50" 
+                : "text-amber-500 border-amber-200 bg-amber-50 hover:bg-amber-100 dark:text-amber-500 dark:border-amber-900/50 dark:bg-amber-950/30 dark:hover:bg-amber-950/50"
+              }`}
+              title={p.lc === "GFG" ? `Open ${p.name.split("/")[0]} in GFG` : "Open in LeetCode"}
+            >
+              {p.lc === "GFG" ? (
+                <span className="font-black text-[10px] tracking-widest">GFG</span>
+              ) : (
+                <LeetCodeIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+              )}
+            </a>
+          )}
+
+          <button
+            onClick={() => toggleTask(id, "later")}
+            title="Do Later"
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 sm:px-2 sm:py-1 rounded-lg sm:rounded text-xs font-semibold sm:font-normal transition-colors flex-1 sm:flex-none ${
+              isLater 
+              ? 'bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-600/20 dark:text-amber-400 dark:border-amber-600/30' 
+              : 'bg-slate-100 text-slate-600 border border-transparent hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>{isLater ? 'Due' : 'Later'}</span>
+          </button>
+        </div>
       </div>
     );
   };
@@ -309,6 +351,29 @@ export default function DSAPlan() {
           </div>
           
           <div className="flex items-center gap-3 sm:gap-6">
+            <div className="hidden sm:flex items-center p-1 rounded-lg bg-slate-100 border border-slate-200 dark:bg-slate-900 dark:border-slate-800">
+              <button
+                onClick={() => setPlannerMode("dsa")}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                  plannerMode === "dsa"
+                    ? "bg-indigo-600 text-white"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
+              >
+                DSA
+              </button>
+              <button
+                onClick={() => setPlannerMode("semester")}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                  plannerMode === "semester"
+                    ? "bg-emerald-600 text-white"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
+              >
+                Semester
+              </button>
+            </div>
+
             <button 
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 rounded-full transition-colors bg-slate-100 text-indigo-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-amber-300 dark:hover:bg-slate-700"
@@ -336,6 +401,31 @@ export default function DSAPlan() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4">
+        <div className="sm:hidden flex items-center p-1 mb-4 rounded-lg bg-slate-100 border border-slate-200 dark:bg-slate-900 dark:border-slate-800">
+          <button
+            onClick={() => setPlannerMode("dsa")}
+            className={`flex-1 px-3 py-2 rounded-md text-xs font-bold transition-colors ${
+              plannerMode === "dsa" ? "bg-indigo-600 text-white" : "text-slate-500"
+            }`}
+          >
+            DSA
+          </button>
+          <button
+            onClick={() => setPlannerMode("semester")}
+            className={`flex-1 px-3 py-2 rounded-md text-xs font-bold transition-colors ${
+              plannerMode === "semester" ? "bg-emerald-600 text-white" : "text-slate-500"
+            }`}
+          >
+            Semester
+          </button>
+        </div>
+        {plannerMode === "semester" && (
+          <div className="mb-6">
+            <StudyPlanner />
+          </div>
+        )}
+        {plannerMode === "dsa" && (
+          <>
         
         {/* Navigation Tabs */}
         <div className="flex p-1 mb-6 sm:mb-8 rounded-xl border w-full sm:w-fit mx-auto lg:mx-0 shadow-inner bg-slate-100 border-slate-200 dark:bg-slate-900/80 dark:border-slate-800">
@@ -579,31 +669,81 @@ export default function DSAPlan() {
 
                         {/* Non-DSA & Spaced Rep */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className="border rounded-xl p-4 transition-colors cursor-default bg-indigo-50 border-indigo-100 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30 dark:hover:bg-indigo-950/30"
-                               onClick={() => toggleTask(`${dayIdPrefix}-nondsa`, "done")}>
-                            <div className="flex justify-between items-start gap-2 mb-2">
-                              <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
+                          <div className={`relative border rounded-xl p-4 transition-all duration-300 group ${
+                            getStatus(`${dayIdPrefix}-nondsa`) === "done"
+                              ? "bg-emerald-50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900/30 opacity-70"
+                              : getStatus(`${dayIdPrefix}-nondsa`) === "later"
+                              ? "bg-amber-50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/30"
+                              : "bg-indigo-50/50 border-indigo-100 hover:bg-indigo-100/50 dark:bg-indigo-950/10 dark:border-indigo-900/20 dark:hover:bg-indigo-950/20"
+                          }`}>
+                            <div className="flex justify-between items-start gap-2 mb-3">
+                              <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
                                 Theory / CS 
                               </div>
-                              {getStatus(`${dayIdPrefix}-nondsa`) === "done" && <CheckCircle2 className="w-3 h-3 text-emerald-500"/>}
+                              <button 
+                                onClick={() => toggleTask(`${dayIdPrefix}-nondsa`, "done")}
+                                className="transition-transform active:scale-90"
+                              >
+                                {getStatus(`${dayIdPrefix}-nondsa`) === "done" 
+                                  ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                  : <Circle className="w-5 h-5 text-indigo-300 dark:text-indigo-800" />
+                                }
+                              </button>
                             </div>
-                            <div className={`text-sm ${getStatus(`${dayIdPrefix}-nondsa`) === "done" ? "text-slate-400 dark:text-slate-500 line-through" : "text-indigo-900 dark:text-indigo-100/80"}`}>
+                            <div className={`text-sm font-medium leading-relaxed mb-4 ${getStatus(`${dayIdPrefix}-nondsa`) === "done" ? "text-slate-400 dark:text-slate-500 line-through" : "text-slate-700 dark:text-slate-200"}`}>
                               {day.nonDsa}
                             </div>
+                            <button
+                              onClick={() => toggleTask(`${dayIdPrefix}-nondsa`, "later")}
+                              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                getStatus(`${dayIdPrefix}-nondsa`) === "later"
+                                ? "bg-amber-200 text-amber-800 dark:bg-amber-600/30 dark:text-amber-400"
+                                : "bg-white/80 text-slate-500 hover:bg-white dark:bg-slate-800/50 dark:text-slate-400 dark:hover:bg-slate-800"
+                              }`}
+                            >
+                              <Clock className="w-3 h-3" />
+                              {getStatus(`${dayIdPrefix}-nondsa`) === "later" ? "Due Later" : "Snooze"}
+                            </button>
                           </div>
                           
                           {day.spaced && (
-                            <div className="border rounded-xl p-4 transition-colors cursor-default bg-purple-50 border-purple-100 hover:bg-purple-100 dark:bg-purple-950/20 dark:border-purple-900/30 dark:hover:bg-purple-950/30"
-                                 onClick={() => toggleTask(`${dayIdPrefix}-spaced`, "done")}>
-                              <div className="flex justify-between items-start gap-2 mb-2">
-                                <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest">
-                                  Spaced Revision
+                            <div className={`relative border rounded-xl p-4 transition-all duration-300 group ${
+                              getStatus(`${dayIdPrefix}-spaced`) === "done"
+                                ? "bg-emerald-50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900/30 opacity-70"
+                                : getStatus(`${dayIdPrefix}-spaced`) === "later"
+                                ? "bg-amber-50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/30"
+                                : "bg-purple-50/50 border-purple-100 hover:bg-purple-100/50 dark:bg-purple-950/10 dark:border-purple-900/20 dark:hover:bg-purple-950/20"
+                            }`}>
+                              <div className="flex justify-between items-start gap-2 mb-3">
+                                <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
+                                  Spaced Rep
                                 </div>
-                                {getStatus(`${dayIdPrefix}-spaced`) === "done" && <CheckCircle2 className="w-3 h-3 text-emerald-500"/>}
+                                <button 
+                                  onClick={() => toggleTask(`${dayIdPrefix}-spaced`, "done")}
+                                  className="transition-transform active:scale-90"
+                                >
+                                  {getStatus(`${dayIdPrefix}-spaced`) === "done" 
+                                    ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                    : <Circle className="w-5 h-5 text-purple-300 dark:text-purple-800" />
+                                  }
+                                </button>
                               </div>
-                              <div className={`text-sm ${getStatus(`${dayIdPrefix}-spaced`) === "done" ? "text-slate-400 dark:text-slate-500 line-through" : "text-purple-900 dark:text-purple-100/80"}`}>
+                              <div className={`text-sm font-medium leading-relaxed mb-4 ${getStatus(`${dayIdPrefix}-spaced`) === "done" ? "text-slate-400 dark:text-slate-500 line-through" : "text-slate-700 dark:text-slate-200"}`}>
                                 {day.spaced}
                               </div>
+                              <button
+                                onClick={() => toggleTask(`${dayIdPrefix}-spaced`, "later")}
+                                className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                  getStatus(`${dayIdPrefix}-spaced`) === "later"
+                                  ? "bg-amber-200 text-amber-800 dark:bg-amber-600/30 dark:text-amber-400"
+                                  : "bg-white/80 text-slate-500 hover:bg-white dark:bg-slate-800/50 dark:text-slate-400 dark:hover:bg-slate-800"
+                                }`}
+                              >
+                                <Clock className="w-3 h-3" />
+                                {getStatus(`${dayIdPrefix}-spaced`) === "later" ? "Due Later" : "Snooze"}
+                              </button>
                             </div>
                           )}
                         </div>
@@ -639,6 +779,8 @@ export default function DSAPlan() {
               </div>
             )}
           </div>
+        )}
+          </>
         )}
 
       </main>
