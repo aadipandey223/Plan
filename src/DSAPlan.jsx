@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { plan } from "./planData";
 import StudyPlanner from "./StudyPlanner";
+import AmazonWow from "./AmazonWow";
 import { 
   CheckCircle2, Circle, Clock, ChevronDown, ChevronRight, 
   BarChart, ListTodo, CalendarClock, Trophy, Play,
@@ -372,6 +373,16 @@ export default function DSAPlan() {
               >
                 Semester
               </button>
+              <button
+                onClick={() => setPlannerMode("amazon")}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                  plannerMode === "amazon"
+                    ? "bg-fuchsia-600 text-white"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
+              >
+                Amazon WOW
+              </button>
             </div>
 
             <button 
@@ -400,7 +411,7 @@ export default function DSAPlan() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4">
+      <main className={plannerMode === "amazon" ? "" : "max-w-4xl mx-auto px-4"}>
         <div className="sm:hidden flex items-center p-1 mb-4 rounded-lg bg-slate-100 border border-slate-200 dark:bg-slate-900 dark:border-slate-800">
           <button
             onClick={() => setPlannerMode("dsa")}
@@ -418,11 +429,25 @@ export default function DSAPlan() {
           >
             Semester
           </button>
+          <button
+            onClick={() => setPlannerMode("amazon")}
+            className={`flex-1 px-3 py-2 rounded-md text-xs font-bold transition-colors ${
+              plannerMode === "amazon" ? "bg-fuchsia-600 text-white" : "text-slate-500"
+            }`}
+          >
+            WOW
+          </button>
         </div>
         {plannerMode === "semester" && (
           <div className="mb-6">
             <StudyPlanner />
           </div>
+        )}
+        {plannerMode === "amazon" && (
+          <AmazonWow
+            theme={theme}
+            onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
+          />
         )}
         {plannerMode === "dsa" && (
           <>
